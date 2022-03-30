@@ -1,0 +1,31 @@
+---
+title: "Untitled"
+author: "Luke Dunekacke"
+date: "3/27/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(statmod)
+suppressMessages(library( fields))
+suppressMessages(library(tidyverse))
+```
+
+```{r}
+fire = read.csv("Acoustic_Extinguisher_Fire_Dataset.csv")
+```
+
+
+```{r}
+head(fire)
+```
+
+
+
+```{r}
+nrow(fire)
+```
