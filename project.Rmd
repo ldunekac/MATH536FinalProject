@@ -9,7 +9,16 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+TODO list:
+
+1. I would also like to fit a ML model to the data and see how well we can train it.
+2. Other types of glm fits. Right now I'm looking at the binomial 
+3. I would like look at some the plots a bit more. There does seem to be some interesting with distance, desibel, airflow, and frequency.
+
+
 ```{r}
+set.seed(42)
 library(statmod)
 suppressMessages(library( fields))
 suppressMessages(library(tidyverse))
@@ -24,8 +33,104 @@ fire = read.csv("Acoustic_Extinguisher_Fire_Dataset.csv")
 head(fire)
 ```
 
+```{R}
+plot(fire)
+```
+
+```{r}
+fire_glm = glm(as.factor(STATUS) ~ FUEL + DISTANCE + DESIBEL + AIRFLOW + FREQUENCY, data=fire, family = binomial(link="logit"))
+summary(fire_glm)
+```
+
+I'm going to start out fitting a binomial to this data set since I want to know the probability that I'll successfully put out a fire given the covariates.
+
+```{r}
+fire_glm = glm(as.factor(STATUS) ~ DISTANCE + DESIBEL + FREQUENCY, data=fire, family = binomial(link="logit"))
+summary(fire_glm)
+```
+
+
+
+Let's go a bit extreme and see what interactions may be worth looking at :)
+```{r}
+fire_glm = glm(as.factor(STATUS) ~ FUEL * DISTANCE * DESIBEL * AIRFLOW * FREQUENCY, data=fire, family = binomial(link="logit"))
+summary(fire_glm)
+```
+
+Airflow does not seam to be significant. By itself, it has a large p-value and most interactions with it are also non-significant. If we try to make a model with few number of parameters, I think this covariate will be cut.
+
+I don't think fuel should be an interaction term. There are more non-significant interactions with fuel than significant ones. If you take fuel out of the significant ones, and look at the other parameters as an interaction, you will find that they are also significant. For example, FUELkerosene:DISTANCE:DESIBEL:AIRFLOW:FREQUENCY is significant but DISTANCE:DESIBEL:AIRFLOW:FREQUENCY also is. 
+
+Currently I think decibel, distance, and frequency are the three main covariates. that contribute best to the model.I'm unsure about airflow. 
+
+I'm not too worried about the residuals yet because these models are a bit ridiculous. I'm just trying to figure out what may be valuable to look at. 
+
+
+
+
+
+Again going a bit ridiculous. I'm going to see if I can find a good set of parameters to look at. I'm going to be using the lasso algorithm. 
+
+```{r}
+library(glmnet)
+x = model.matrix(as.factor(fire$STATUS) ~ fire$FUEL * fire$DISTANCE * fire$DESIBEL * fire$AIRFLOW * fire$FREQUENCY)
+glmmod_fire = glmnet(x, y = as.factor(fire$STATUS), alpha=1, family="binomial")
+plot(glmmod_fire, xvar="lambda")
+```
+
+
+Find the best lambda value with corss validation
+```{r}
+cv_glmmod_fire = cv.glmnet(x, y=fire$STATUS, alpha=1)
+plot(cv_glmmod_fire)
+```
+
+Just by eyeballing it, I think -6 is a good number for log(lambda). Just because it has a low MSE and it is where a lot of the parameters hit zero in the plot above. I think that might be a spot where we get a lot of bang for our buck.
+
 
 
 ```{r}
-nrow(fire)
+exp(-6) # find lambda where log(lambda) = -6
+glmmod_fire
 ```
+
+It looks like row 55 is our lambda value. Let's see what it gives us. 
+
+```{r}
+coef(glmmod_fire)[,55]
+```
+
+It looks here that decibel, airflow, and frequency may be good interaction terms. It looks like the type of fuel did not matter much. If fuel did appear as an interaction term, distance was always pared with it. 
+
+I'm going to reduce the model to two sets of interactions based on these results.
+
+```{r}
+fire_glm2 = glm(as.factor(STATUS) ~ FUEL * DISTANCE + DESIBEL * AIRFLOW * FREQUENCY, data=fire, family = binomial(link="logit"))
+summary(fire_glm2)
+```
+
+
+From this result is looks like decibel:airflow:frequency is not a good interaction term all together. Let's split them up. I also don't think that distance and fire type have much of an interaction. 
+
+
+```{r}
+fire_glm3 = glm(as.factor(STATUS) ~ FUEL + DISTANCE + DESIBEL * AIRFLOW + DESIBEL * FREQUENCY, data=fire, family = binomial(link="logit"))
+summary(fire_glm3)
+```
+
+This is starting to look good. 
+
+```{r}
+par(mfrow=c(1,2))
+residualsGLM<- qres.binom(fire_glm3)
+hist(residualsGLM)
+boxplot(residualsGLM)
+```
+Looks like our residuals are distributed normally. So that is a good start. The next things I want to look at is the confusion matrix and see how much worse/better the model performs if I start removing parameters. I think the fire_glm3 model is a good place to start.  
+
+
+
+
+
+
+
