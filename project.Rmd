@@ -20,7 +20,8 @@ TODO list:
 ```{r}
 set.seed(42)
 library(statmod)
-suppressMessages(library( fields))
+library(glmnet)
+suppressMessages(library(fields))
 suppressMessages(library(tidyverse))
 ```
 
@@ -72,7 +73,6 @@ I'm not too worried about the residuals yet because these models are a bit ridic
 Again going a bit ridiculous. I'm going to see if I can find a good set of parameters to look at. I'm going to be using the lasso algorithm. 
 
 ```{r}
-library(glmnet)
 x = model.matrix(as.factor(fire$STATUS) ~ fire$FUEL * fire$DISTANCE * fire$DESIBEL * fire$AIRFLOW * fire$FREQUENCY)
 glmmod_fire = glmnet(x, y = as.factor(fire$STATUS), alpha=1, family="binomial")
 plot(glmmod_fire, xvar="lambda")
