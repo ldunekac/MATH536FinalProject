@@ -1,0 +1,160 @@
+---
+title: "Untitled"
+author: "Luke Dunekacke"
+date: "3/27/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+TODO list:
+
+1. I would also like to fit a ML model to the data and see how well we can train it.
+2. Other types of glm fits. Right now I'm looking at the binomial 
+3. I would like look at some the plots a bit more. There does seem to be some interesting with distance, desibel, airflow, and frequency.
+
+
+```{r}
+set.seed(42)
+library(statmod)
+library(glmnet)
+suppressMessages(library(fields))
+suppressMessages(library(tidyverse))
+library(caret)
+```
+
+```{r}
+fire = read.csv("Acoustic_Extinguisher_Fire_Dataset.csv")
+n = nrow(fire)
+ind = sample(1:n, n*.9, replace=FALSE)
+train = fire[ind,]
+test = fire[-ind,]
+cutoff = 0.8
+```
+
+
+```{r}
+validate = function(model) {
+  predictions = predict(model, newdata = test, type="response")
+  
+  cutlines = seq(0.1,.99, by=.05)
+  n = length(cutlines)
+  results = list()
+  i = 1
+  for(i in 1:n) {
+    cut = cutlines[i]
+    fire_out = ifelse(predictions >= cut, 1,0)
+    fire_factor = factor(fire_out, levels=c(0,1))
+    test_factor = factor(test$STATUS)
+    results[[i]]= confusionMatrix(test_factor, fire_factor)
+  }
+  results
+}
+```
+
+
+```{r}
+plot_roc = function(confusion_matrix_list) {
+  n = length(confusion_matrix_list)
+  sen = rep(NA, n)
+  spe = rep(NA, n)
+  for (i in 1:n) {
+    sen[i] = confusion_matrix_list[[i]]$byClass["Sensitivity"]
+    spe[i] = 1 - confusion_matrix_list[[i]]$byClass["Specificity"]
+  }
+  sen = replace(sen, is.na(sen), 0)
+  spe = replace(spe, is.na(spe), 0)
+  plot(
+    spe,
+    sen,
+    xlim=c(0,1),
+    ylim=c(0,1),
+    type="l",
+    col="blue",
+    main="ROC Graph",
+    xlab="1 - Specificity",
+    ylab="Sensitivity"
+  )
+}
+```
+
+```{r}
+fire_glm3 = glm(as.factor(STATUS) ~ FUEL + DISTANCE + DESIBEL * AIRFLOW + DESIBEL * FREQUENCY, data=train, family = binomial(link="logit"))
+val_fire_glm3 = validate(fire_glm3)
+plot_roc(val_fire_glm3)
+```
+
+
+```{r}
+fire_glm2 = glm(STATUS ~ FUEL * DISTANCE + DESIBEL * AIRFLOW * FREQUENCY, data=fire, family = binomial(link="logit"))
+val_fire_glm2 = validate(fire_glm2)
+plot_roc(val_fire_glm2)
+```
+
+
+```{r}
+fire_glm = glm(as.factor(STATUS) ~ FUEL + DISTANCE + DESIBEL + AIRFLOW + FREQUENCY, data=train, family = binomial(link="logit"))
+val_fire_glm = validate(fire_glm)
+plot_roc(val_fire_glm)
+```
+
+```{r}
+plot_rocs = function(confusion_matrix_list1, confusion_matrix_list2) {
+  
+  for(j in 1:length(confusion_matrix_list1)) {
+    n = length(confusion_matrix_list1)
+    sen1 = rep(NA, n)
+    spe1 = rep(NA, n)
+    for (i in 1:n) {
+      sen1[i] = confusion_matrix_list1[[i]]$byClass["Sensitivity"]
+      spe1[i] = 1 - confusion_matrix_list1[[i]]$byClass["Specificity"]
+    }
+  }
+  sen1 = replace(sen1, is.na(sen1), 0)
+  spe1 = replace(spe1, is.na(spe1), 0)
+  
+  
+  for(j in 1:length(confusion_matrix_list2)) {
+    n = length(confusion_matrix_list2)
+    sen2 = rep(NA, n)
+    spe2 = rep(NA, n)
+    for (i in 1:n) {
+      sen2[i] = confusion_matrix_list2[[i]]$byClass["Sensitivity"]
+      spe2[i] = 1 - confusion_matrix_list2[[i]]$byClass["Specificity"]
+    }
+  }
+  sen2 = replace(sen2, is.na(sen2), 0)
+  spe2 = replace(spe2, is.na(spe2), 0)
+  
+  
+  
+  plot(
+    spe1,
+    sen1,
+    xlim=c(0,1),
+    ylim=c(0,1),
+    type="l",
+    col="blue",
+    main="ROC Graph",
+    xlab="1 - Specificity",
+    ylab="Sensitivity"
+  )
+  lines(spe2, sen2, type="l", col="red")
+}
+```
+
+```{r}
+plot_rocs(val_fire_glm, val_fire_glm3)
+```
+
+```{r}
+f = glm(as.factor(STATUS) ~ DISTANCE + DESIBEL, data=train, family = binomial(link="logit"))
+val_f = validate(f)
+plot_rocs(val_f, val_fire_glm3)
+```
+
+
+
