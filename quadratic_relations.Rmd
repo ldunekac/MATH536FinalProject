@@ -1,0 +1,58 @@
+---
+title: "Untitled"
+author: "Luke Dunekacke"
+date: "3/27/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+TODO list:
+
+1. I would also like to fit a ML model to the data and see how well we can train it.
+2. Other types of glm fits. Right now I'm looking at the binomial 
+3. I would like look at some the plots a bit more. There does seem to be some interesting with distance, desibel, airflow, and frequency.
+
+
+```{r}
+set.seed(42)
+library(statmod)
+library(glmnet)
+suppressMessages(library(fields))
+suppressMessages(library(tidyverse))
+library(caret)
+```
+
+```{r}
+fire = read.csv("Acoustic_Extinguisher_Fire_Dataset.csv")
+```
+
+```{r}
+fire_poly_glm = glm(as.factor(STATUS) ~ FUEL + poly(DISTANCE,3,raw=TRUE) + poly(DESIBEL, 3, raw=TRUE) + poly(AIRFLOW, 3, raw=TRUE) + poly(FREQUENCY, 3,raw=TRUE), data=fire, family = binomial(link="logit"))
+summary(fire_glm)
+```
+
+```{r}
+x = model.matrix(as.factor(fire$STATUS) ~ fire$FUEL + poly(fire$DISTANCE,3,raw=TRUE) + poly(fire$DESIBEL, 3, raw=TRUE) + poly(fire$AIRFLOW, 3, raw=TRUE) + poly(fire$FREQUENCY, 3,raw=TRUE))
+glmmod_fire = glmnet(x, y = as.factor(fire$STATUS), alpha=1, family="binomial")
+plot(glmmod_fire, xvar="lambda")
+```
+
+
+```{r}
+cv_glmmod_fire = cv.glmnet(x, y=fire$STATUS, alpha=1)
+plot(cv_glmmod_fire)
+```
+
+
+```{r}
+exp(-5) # find lambda where log(lambda) = -8
+glmmod_fire
+```
+
+```{r}
+coef(glmmod_fire)[,46]
+```

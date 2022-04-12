@@ -157,4 +157,20 @@ plot_rocs(val_f, val_fire_glm3)
 ```
 
 
+```{r}
+fire_poly_glm3 = glm(as.factor(STATUS) ~ FUEL + poly(DISTANCE,3,raw=TRUE) + poly(DESIBEL, 3, raw=TRUE) + poly(AIRFLOW, 3, raw=TRUE) + poly(FREQUENCY, 3,raw=TRUE), data=train, family = binomial(link="logit"))
+plot_roc(validate(fire_poly_glm3))
+plot_rocs(val_fire_glm3, validate(fire_poly_glm3))
+```
+
+
+
+
+```{r}
+fire_poly_glm2 = glm(as.factor(STATUS) ~ FUEL + poly(DISTANCE,2,raw=TRUE) + poly(DESIBEL, 2, raw=TRUE) + poly(AIRFLOW, 2, raw=TRUE) + poly(FREQUENCY, 2,raw=TRUE), data=train, family = binomial(link="logit"))
+plot_roc(validate(fire_poly_glm2))
+plot_rocs(validate(fire_poly_glm2), val_fire_glm3)
+```
+
+
 
