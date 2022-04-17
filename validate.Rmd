@@ -40,7 +40,7 @@ cutoff = 0.8
 validate = function(model) {
   predictions = predict(model, newdata = test, type="response")
   
-  cutlines = seq(0.1,.99, by=.05)
+  cutlines = seq(0.0,1, by=.001)
   n = length(cutlines)
   results = list()
   i = 1
@@ -62,8 +62,12 @@ plot_roc = function(confusion_matrix_list) {
   sen = rep(NA, n)
   spe = rep(NA, n)
   for (i in 1:n) {
-    sen[i] = confusion_matrix_list[[i]]$byClass["Sensitivity"]
-    spe[i] = 1 - confusion_matrix_list[[i]]$byClass["Specificity"]
+    TP = confusion_matrix_list[[i]]$table[2,2]
+    FP = confusion_matrix_list[[i]]$table[1,2]
+    FN = confusion_matrix_list[[i]]$table[2,1]
+    TN = confusion_matrix_list[[i]]$table[1,1]
+    sen[i] = TP/(TP+FN)
+    spe[i] = 1 - TN/(TN+FP)  
   }
   sen = replace(sen, is.na(sen), 0)
   spe = replace(spe, is.na(spe), 0)
@@ -103,28 +107,31 @@ plot_roc(val_fire_glm)
 
 ```{r}
 plot_rocs = function(confusion_matrix_list1, confusion_matrix_list2) {
-  
-  for(j in 1:length(confusion_matrix_list1)) {
-    n = length(confusion_matrix_list1)
-    sen1 = rep(NA, n)
-    spe1 = rep(NA, n)
-    for (i in 1:n) {
-      sen1[i] = confusion_matrix_list1[[i]]$byClass["Sensitivity"]
-      spe1[i] = 1 - confusion_matrix_list1[[i]]$byClass["Specificity"]
-    }
+  n = length(confusion_matrix_list1)
+  sen1 = rep(NA, n)
+  spe1 = rep(NA, n)
+  for (i in 1:n) {
+    TP = confusion_matrix_list1[[i]]$table[2,2]
+    FP = confusion_matrix_list1[[i]]$table[1,2]
+    FN = confusion_matrix_list1[[i]]$table[2,1]
+    TN = confusion_matrix_list1[[i]]$table[1,1]
+    sen1[i] = TP/(TP+FN)
+    spe1[i] = 1 - TN/(TN+FP) 
   }
   sen1 = replace(sen1, is.na(sen1), 0)
   spe1 = replace(spe1, is.na(spe1), 0)
   
   
-  for(j in 1:length(confusion_matrix_list2)) {
-    n = length(confusion_matrix_list2)
-    sen2 = rep(NA, n)
-    spe2 = rep(NA, n)
-    for (i in 1:n) {
-      sen2[i] = confusion_matrix_list2[[i]]$byClass["Sensitivity"]
-      spe2[i] = 1 - confusion_matrix_list2[[i]]$byClass["Specificity"]
-    }
+  n = length(confusion_matrix_list2)
+  sen2 = rep(NA, n)
+  spe2 = rep(NA, n)
+  for (i in 1:n) {
+    TP = confusion_matrix_list2[[i]]$table[2,2]
+    FP = confusion_matrix_list2[[i]]$table[1,2]
+    FN = confusion_matrix_list2[[i]]$table[2,1]
+    TN = confusion_matrix_list2[[i]]$table[1,1]
+    sen2[i] = TP/(TP+FN) 
+    spe2[i] = 1 - TN/(TN+FP) 
   }
   sen2 = replace(sen2, is.na(sen2), 0)
   spe2 = replace(spe2, is.na(spe2), 0)
