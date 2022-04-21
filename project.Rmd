@@ -16,6 +16,7 @@ TODO list:
 2. Other types of glm fits. Right now I'm looking at the binomial 
 3. I would like look at some the plots a bit more. There does seem to be some interesting with distance, desibel, airflow, and frequency.
 
+Using the fire extinguisher data set, we are looking to see if the fire extinguisher can put out fires based on distance, desibel, airflow and frequency parameters. We will begin by fitting some linear models to see how well this performs. 
 
 ```{r}
 set.seed(42)
